@@ -6,7 +6,7 @@ channels=json.loads((ROOT/'channels.json').read_text())
 def get_channel(c):
  try:
   req=urllib.request.Request('https://www.youtube.com/feeds/videos.xml?channel_id='+c['id'],headers={'User-Agent':'AlgoBuster/1.0'})
-  with urllib.request.urlopen(req,timeout=15) as r:root=ET.fromstring(r.read())
+  with urllib.request.urlopen(req,timeout=6) as r:root=ET.fromstring(r.read())
   result=[]
   name=root.findtext('a:title','',NS)
   for e in root.findall('a:entry',NS):
@@ -17,7 +17,7 @@ def get_channel(c):
  except Exception as e:
   print('Feed unavailable:',c['id'],str(e)[:80]);return [],None
 videos=[];active=[]
-with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+with concurrent.futures.ThreadPoolExecutor(max_workers=32) as pool:
  for v,c in pool.map(get_channel,channels):
   videos.extend(v)
   if c:active.append(c)
@@ -29,4 +29,4 @@ videos=list({v['id']:v for v in videos}.values())
 data={'updatedAt':now.isoformat(),'channels':active,'videos':videos}
 (ROOT/'web/feed.json').write_text(json.dumps(data,ensure_ascii=False,separators=(',',':')))
 print('Saved',len(videos),'videos from',len(active),'channels')
-print('Source channels:',', '.join(c['name'] for c in active))
+print('Source pool:',len(channels),'configured channels')
