@@ -1,18 +1,23 @@
-export const CATEGORIES=['Entertainment','Science','Tech','Gaming','Food','Travel','Outdoors','Making','Sports'];
+export const CATEGORIES=['Entertainment','Science','Tech','Gaming','Food','Travel','Outdoors','Making','Sports','History','Art','Design','Animals','Music','Learning','Documentary'];
 export function cleanVideos(data){if(!Array.isArray(data))return [];const ids=new Set();return data.filter(v=>{if(!v||!/^[\w-]{11}$/.test(v.id)||ids.has(v.id)||typeof v.title!=='string'||typeof v.channel!=='string'||!CATEGORIES.includes(v.category)||!Number.isFinite(Number(v.views))||Number(v.views)<0||!Number.isFinite(Date.parse(v.published)))return false;ids.add(v.id);return true;});}
 export function makeMix(videos,category='All',previous=[],opened=[],random=Math.random,now=Date.now()){
  const eligible=videos.filter(v=>category==='All'||v.category===category);
- const previousSet=new Set(previous),openedSet=new Set(opened);
- const rank=v=>Math.log10(Number(v.views)+10)/(Math.max(1,(now-Date.parse(v.published))/86400000)**.22);
- const fresh=eligible.filter(v=>!previousSet.has(v.id)&&!openedSet.has(v.id));
- const candidates=fresh.length>=Math.min(6,eligible.length)?fresh:eligible.filter(v=>!previousSet.has(v.id));
- const pool=(candidates.length?candidates:eligible).map(v=>({v,score:rank(v)*(0.65+random()*.7)})).sort((a,b)=>b.score-a.score).map(x=>x.v);
- const result=[],counts=new Map(),used=new Set();
- const add=v=>{if(!used.has(v.id)){result.push(v);used.add(v.id);counts.set(v.channelId,(counts.get(v.channelId)||0)+1);}};
- if(category==='All'){
-  const cats=CATEGORIES.map(cat=>({cat,r:random()})).sort((a,b)=>a.r-b.r);
-  for(const {cat} of cats){const v=pool.find(v=>v.category===cat&&(counts.get(v.channelId)||0)<1);if(v)add(v);}
- }
- for(const limit of [1,2,3,12]){for(const v of pool){if(result.length>=12)break;if((counts.get(v.channelId)||0)<limit)add(v);}if(result.length>=12)break;}
+ const seen=new Set(previous),clicked=new Set(opened);
+ const familiar=new Set(eligible.filter(v=>seen.has(v.id)||clicked.has(v.id)).map(v=>v.channelId));
+ const shuffle=items=>{const a=[...items];for(let i=a.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+ let pool=eligible.filter(v=>!seen.has(v.id)&&!clicked.has(v.id));
+ if(!pool.length)pool=eligible.filter(v=>!clicked.has(v.id));
+ if(!pool.length)pool=eligible;
+ const groups=new Map();for(const v of pool){if(!groups.has(v.channelId))groups.set(v.channelId,[]);groups.get(v.channelId).push(v);}
+ // Give each channel a chance, instead of allowing the biggest view counts to dominate.
+ const channelOrder=[...shuffle([...groups.keys()].filter(id=>!familiar.has(id))),...shuffle([...groups.keys()].filter(id=>familiar.has(id)))];
+ const picks=channelOrder.map(id=>{const choices=groups.get(id).sort((a,b)=>{
+  const score=v=>Math.log10(Number(v.views)+10)/Math.max(1,(now-Date.parse(v.published))/86400000)**.15;
+  return score(b)-score(a);
+ }).slice(0,6);return choices[Math.floor(random()*choices.length)];});
+ const result=[],topics=new Set();
+ // Mix subjects first, then fill spare slots. Always one video per channel.
+ if(category==='All')for(const v of picks){if(result.length>=12)break;if(!topics.has(v.category)){result.push(v);topics.add(v.category);}}
+ for(const v of picks){if(result.length>=12)break;if(!result.some(x=>x.id===v.id))result.push(v);}
  return result;
 }
