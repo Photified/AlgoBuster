@@ -3,3 +3,12 @@
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 
 .signal svg{width:15px;height:15px;vertical-align:middle}.external svg{width:14px;height:14px}
+
+/* Visible desktop control for the horizontal category row. */
+@media (min-width: 651px) {
+ nav { scrollbar-width: auto; scrollbar-color: var(--orange) var(--panel); padding-bottom: 16px; }
+ nav::-webkit-scrollbar { display: block; height: 10px; }
+ nav::-webkit-scrollbar-track { background: var(--panel); border-radius: 8px; }
+ nav::-webkit-scrollbar-thumb { background: var(--orange); border: 2px solid var(--panel); border-radius: 8px; }
+ nav::-webkit-scrollbar-thumb:hover { background: var(--orange-light); }
+}
